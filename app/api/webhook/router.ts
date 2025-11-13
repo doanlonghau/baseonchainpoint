@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  // Xử lý payload của Farcaster nếu cần
-  // const body = await req.json()
-
   return NextResponse.json({ ok: true })
 }
