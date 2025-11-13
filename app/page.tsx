@@ -3,9 +3,14 @@
 import { useEffect, useState } from 'react'
 import { sdk } from '@farcaster/miniapp-sdk'
 
+// TODO: replace these with your real GM contract on Base
+const GM_CONTRACT_ADDRESS = '0xf227C3d167633182419a1Be8E15e81635Df27636'
+const GM_CALL_DATA = '0xc0129d43' // encoded gm() call data
+
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
 
+  // mini app ready (splash)
   useEffect(() => {
     const init = async () => {
       try {
@@ -15,19 +20,19 @@ export default function Home() {
       }
     }
 
+    void init()
+  }, [])
+
+  // simple responsive flag
+  useEffect(() => {
     const handleResize = () => {
       if (typeof window !== 'undefined') {
         setIsMobile(window.innerWidth < 768)
       }
     }
-
-    init()
     handleResize()
     window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   const [fid, setFid] = useState('')
@@ -38,6 +43,8 @@ export default function Home() {
 
   const [address, setAddress] = useState('')
   const [volumeResult, setVolumeResult] = useState<string | null>(null)
+
+  const [gmStatus, setGmStatus] = useState<string | null>(null)
 
   async function handleCheckScore() {
     try {
@@ -73,6 +80,43 @@ export default function Home() {
       setVolumeResult(JSON.stringify(data, null, 2))
     } catch (e) {
       setVolumeResult('Error calling volume api')
+    }
+  }
+
+  async function handleGmCheckin() {
+    try {
+      setGmStatus('Preparing gm transaction...')
+
+      // basic safety so bạn không gửi nhầm nếu chưa set contract
+      if (!GM_CONTRACT_ADDRESS || GM_CONTRACT_ADDRESS.startsWith('0xYour')) {
+        setGmStatus('GM contract address is not configured yet.')
+        return
+      }
+
+      const provider = (sdk as any)?.wallet?.getEthereumProvider
+        ? (sdk.wallet.getEthereumProvider() as any)
+        : null
+
+      if (!provider || !provider.request) {
+        setGmStatus('Wallet provider not available in this context.')
+        return
+      }
+
+      const tx = {
+        to: GM_CONTRACT_ADDRESS,
+        // cần encode dữ liệu gm() của contract của bạn vào đây
+        data: GM_CALL_DATA,
+        value: '0x0' // không gửi ETH, chỉ call contract
+      }
+
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [tx]
+      })
+
+      setGmStatus(`GM transaction sent: ${txHash}`)
+    } catch (error) {
+      setGmStatus(`Error sending gm transaction: ${String(error)}`)
     }
   }
 
@@ -578,6 +622,72 @@ export default function Home() {
             >
               {volumeResult}
             </pre>
+          )}
+        </div>
+      </section>
+
+      {/* GM daily checkin */}
+      <section
+        style={{
+          maxWidth: 1100,
+          margin: '0 auto',
+          marginTop: isMobile ? '0.25rem' : '0.5rem',
+          paddingBottom: isMobile ? '0.5rem' : '1.5rem'
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 20,
+            padding: isMobile ? '1rem' : '1.25rem',
+            backgroundColor: 'rgba(15,23,42,0.96)',
+            border: '1px solid rgba(51,65,85,1)',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.7rem'
+          }}
+        >
+          <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>
+            GM daily check in
+          </h3>
+          <p
+            style={{
+              fontSize: '0.8rem',
+              color: 'rgba(148,163,184,1)'
+            }}
+          >
+            Send an onchain gm to your GM contract on Base once a day to track
+            streaks and reward active community members.
+          </p>
+
+          <button
+            onClick={handleGmCheckin}
+            style={{
+              marginTop: '0.25rem',
+              padding: '0.5rem 0.85rem',
+              borderRadius: 999,
+              border: 'none',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              background:
+                'linear-gradient(135deg, rgba(129,140,248,0.95), rgba(6,182,212,0.95))',
+              color: 'white'
+            }}
+          >
+            Send gm on Base
+          </button>
+
+          {gmStatus && (
+            <div
+              style={{
+                marginTop: '0.4rem',
+                fontSize: '0.75rem',
+                color: 'rgba(148,163,184,1)',
+                wordBreak: 'break-word'
+              }}
+            >
+              {gmStatus}
+            </div>
           )}
         </div>
       </section>
