@@ -208,7 +208,7 @@ export default function Home() {
             textAlign: 'center'
           }}
         >
-          Open mini app
+          Share this mini app
         </a>
       </header>
 
