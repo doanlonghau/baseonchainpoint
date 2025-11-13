@@ -83,30 +83,34 @@ export default function Home() {
     }
   }
 
-  async function handleGmCheckin() {
+    async function handleGmCheckin() {
     try {
       setGmStatus('Preparing gm transaction...')
 
-      // basic safety so bạn không gửi nhầm nếu chưa set contract
-      if (!GM_CONTRACT_ADDRESS || GM_CONTRACT_ADDRESS.startsWith('0xYour')) {
-        setGmStatus('GM contract address is not configured yet.')
+      if (!GM_CONTRACT_ADDRESS) {
+        setGmStatus('GM contract address is not configured.')
         return
       }
 
-      const provider = (sdk as any)?.wallet?.getEthereumProvider
-        ? (sdk.wallet.getEthereumProvider() as any)
-        : null
+      // get EIP-1193 provider from Mini App SDK
+      let provider: any = null
+      try {
+        provider = sdk.wallet.getEthereumProvider()
+      } catch (e) {
+        provider = null
+      }
 
-      if (!provider || !provider.request) {
-        setGmStatus('Wallet provider not available in this context.')
+      if (!provider || typeof provider.request !== 'function') {
+        setGmStatus(
+          'Wallet provider is not available. Open this mini app inside Warpcast or the Base app with a connected wallet.'
+        )
         return
       }
 
       const tx = {
         to: GM_CONTRACT_ADDRESS,
-        // cần encode dữ liệu gm() của contract của bạn vào đây
         data: GM_CALL_DATA,
-        value: '0x0' // không gửi ETH, chỉ call contract
+        value: '0x0' // no ETH, contract call only
       }
 
       const txHash = await provider.request({
